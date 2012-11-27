@@ -1,0 +1,240 @@
+PEP: 431?
+Title: Time zone support improvements
+Version: $Revision$
+Last-Modified: $Date$
+Author: Lennart Regebro <regebro@gmail.com>
+BDFL-Delegate: Barry Warsaw
+Status: Draft
+Type: Standards Track
+Content-Type: text/x-rst
+Created: 28-Oct-2012
+Post-History: 28-Oct-2012
+
+
+Abstract
+========
+
+This PEP proposes the implementation of concrete time zone support in the
+Python standard library, and also improvements to the time zone API to deal
+with ambiguous time specifications during DST changes.
+
+
+Proposal
+========
+
+Concrete time zone support
+-------------------------
+
+The time zone support in Python has no implementation in the standard
+library, only a tzinfo baseclass, and since Python 3.2, one concrete time
+zone: UTC. To properly support time zones you need to include a database over
+all time zones, both current and historical, including daylight saving
+changes. But such information changes frequently, so even if we include the
+last information in a Python release, that information would be outdated just
+a few months later.
+
+Timezone support has therefore only been available through two third-party
+modules, ``pytz`` and ``dateutil``, both who include and wrap the "zoneinfo"
+database. This database, also called "tz" or "The Olsen database", is the
+de-facto standard time zone database over time zones, and it is included in
+most variants of Unix operating systems, including OS X.
+
+This gives us the opportunity to include only the code that supports the
+zoneinfo data in the standard library, but by default use the operating
+systems copy of the data, which typically will be kept updated by the
+updating mechanism of the operating system or distribution.
+
+For those who have an operating system that does not include the tz database,
+for example Windows, a distribution containing the latest tz database should
+also be available at the Python Package Index, so it can be easily installed
+with the Python packaging tools such as ``easy_install`` or ``pip``. This
+could also be done on Unices that are no longer recieving updates and
+therefore has an outdated database.
+
+With such a mechanism Python would have full time zone support in the
+standard library on most platforms, and a simple package installation would
+provide time zone support on those platforms where the tz database isn't
+included, such as Windows.
+
+Getting the local time zone
+--------------------------
+
+On Unix there is no standard way of finding the name of the time zone that is
+being used. All the information that is available is the time zone
+abbreviations, such as ``EST`` and ``PDT``, but many of those abbreviations
+are ambigious and therefore you can't rely on them to figure out which time
+zone you are located in.
+
+There is however a standard for finding the compiled time zone information
+since it's located in ``/etc/localzone``. Therefore it is possible to create
+a local time zone object with the correct time zone information even though
+you don't know the name of the time zone. A function in ``datetime`` should
+be provided to return the local time zone.
+
+Ambiguous times
+---------------
+
+When changing over from daylight savings time the clock is turned back one
+hour. This means that the times during that hour happens twice, once without
+DST and then once with DST. Similarily, when changing to daylight savings
+time, one hour goes missing.
+
+The current time zone API can not differentiating between the two ambiguous
+times during a change from DST. For example, in Stockholm the time of
+2012-11-28 02:00:00 happens twice, both at UTC 2012-11-28 00:00:00 and also
+at 2012-11-28 01:00:00.
+
+The current time zone API can not disambiguate this and therefore it's
+unclear which time should be returned::
+
+    >>> datetime(2012, 11, 28, 2, 0, tzinfo=timezone('Europe/Stockholm'))
+    >>> datetime.astimezone(timezone('UTC'))
+
+This PEP proposes to add ``is_dst`` parameters to the relevant methods of the
+API to make it possible to disambiguate when this is desired.
+
+
+API changes
+===========
+
+There is two new classes, one new function and three new exceptions in the
+`datetime` module. Several methods of the ``tzinfo`` and ``datetime`` classes
+has a new ``is_dst`` parameter.
+
+These API changes are for the most part based on ``pytz`` although with some
+renamings, and assuming that Stuart Bishop, the author of ``pytz`` agrees to
+it, the code will also be mostly based on ``pytz`` with the addition of code
+to get the coputers local time zone which will be based on Lennart Regebro's
+``tzlocal``.
+
+
+New classes
+-----------
+
+* ``StaticTzInfo``
+
+   This class provides a concrete implementation of the ``zoneinfo`` base
+   that provides a fixed offset.
+  
+
+* ``DstTzInfo``
+
+   This class provides a concrete implementation of the ``zoneinfo`` base
+   class that implements DST support.
+   
+
+New functions
+-------------
+
+* ``get_timezone()``
+
+  This function takes a string that specifies a time zone name according to
+  the zoneinfo naming, ie "US/Eastern", "Europe/Warsaw" or "Etc/GMT+11".
+   
+  If no string is passed in, the function will look up the timezone of the
+  local computer and return that.
+
+
+New ``is_dst`` parameter
+------------------------
+
+A new ``is_dst`` parameter is added to several of the `tzinfo` methods to
+handle time ambiguity during DST changeovers.
+
+* ``tzinfo.utcoffset(self, dt, is_dst=None)``
+
+* ``tzinfo.dst(self, dt, is_dst=None)``
+
+* ``tzinfo.tzname(self, dt, is_dst=None)``
+    
+The ``is_dst`` parameter can be ``True`` (default), ``False``, or ``None``.
+
+``True`` will specify that the given datetime should be interpreted as happening
+during daylight savings time, ie that the time specified is before the change
+from DST.
+
+``False`` will specify that the given datetime should be interpreted as not
+happening during daylight savings time, ie that the time specified is after
+the change from DST.
+
+``None`` will raise an ``AmbiguousTimeError`` exception if the time specified
+was during a DST change over. It will also raise a ``NonExistentTimeError``
+if a time is specified during the "missing time" in a change to DST.
+
+
+New exceptions
+--------------
+
+* `UnknownTimeZoneError``
+
+  This exception is raised when giving a time zone specification that can't be found::
+
+    >>> datetime.Timezone('Europe/New_York')
+    Traceback (most recent call last):
+    ...
+    UnknownTimeZoneError: There is no time zone called 'Europe/New_York'
+
+
+* `AmbiguousTimeError``
+
+  This exception is raised when giving a datetime specification that are ambigious
+  while setting ``is_dst`` to None::
+
+    >>> datetime(2012, 11, 28, 2, 0, tzinfo=timezone('Europe/Stockholm'), is_dst=None)
+    >>> 
+    Traceback (most recent call last):
+    ...
+    AmbiguousTimeError: 2012-10-28 02:00:00 is ambiguous in time zone Europe/Stockholm
+
+
+* `NonExistentTimeError``
+
+  This exception is raised when giving a datetime specification that are ambigious
+  while setting ``is_dst`` to None::
+
+    >>> datetime(2012, 3, 25, 2, 0, tzinfo=timezone('Europe/Stockholm'), is_dst=None)
+    >>> 
+    Traceback (most recent call last):
+    ...
+    NonExistentTimeError: 2012-03-25 02:00:00 does not exist in time zone Europe/Stockholm
+
+
+Differences from the ``pytz`` API
+=================================
+
+* ``pytz`` has a localize() function to work around that as_timezone() doesn't have is_dst. 
+  We implement is_dst instead, so it should not be needed.
+  
+* ``pytz`` method ``timezone()`` is instead called ``get_timezone()`` for clarity.
+
+* ``get_timezone()``  will return the local time zone if called without parameters.
+ 
+
+Discussion
+==========
+ 
+* Should is_dst=True/False raise an error if it is incorrect? If you give is_dst=True foor Europe/Stockholm during xmas?
+
+* Should Timezone repr be <Timezone Europe/Stockholm CEST+02:00:00> or Timezone('Europe/Stockholm')?
+
+* Should both StaticTzInfo and DstTzInfo be included? Is StaticTzInfo really
+  useful? Since whole-hour offsets are also available in zoneinfo this class is
+  only necessary if you need a fixed offset that is not a whole hour . This is
+  an unusual case, but by including it we can replace pytz completely.
+
+* Should the windows installer include the data package?
+
+* What should the data package be called?
+
+
+Resources
+=========
+
+* http://pytz.sourceforge.net/
+
+* http://pypi.python.org/pypi/tzlocal
+
+Copyright
+=========
+
+This document has been placed in the public domain.

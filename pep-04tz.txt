@@ -66,7 +66,7 @@ are ambigious and therefore you can't rely on them to figure out which time
 zone you are located in.
 
 There is however a standard for finding the compiled time zone information
-since it's located in ``/etc/localzone``. Therefore it is possible to create
+since it's located in ``/etc/localtime``. Therefore it is possible to create
 a local time zone object with the correct time zone information even though
 you don't know the name of the time zone. A function in ``datetime`` should
 be provided to return the local time zone.
@@ -141,11 +141,11 @@ New ``is_dst`` parameter
 A new ``is_dst`` parameter is added to several of the `tzinfo` methods to
 handle time ambiguity during DST changeovers.
 
-* ``tzinfo.utcoffset(self, dt, is_dst=None)``
+* ``tzinfo.utcoffset(self, dt, is_dst=True)``
 
-* ``tzinfo.dst(self, dt, is_dst=None)``
+* ``tzinfo.dst(self, dt, is_dst=True)``
 
-* ``tzinfo.tzname(self, dt, is_dst=None)``
+* ``tzinfo.tzname(self, dt, is_dst=True)``
     
 The ``is_dst`` parameter can be ``True`` (default), ``False``, or ``None``.
 

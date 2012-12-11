@@ -1,7 +1,14 @@
-PEP: 431? Title: Time zone support improvements Version: $Revision$
-Last-Modified: $Date$ Author: Lennart Regebro <regebro@gmail.com>
-BDFL-Delegate: Barry Warsaw Status: Draft Type: Standards Track Content-Type:
-text/x-rst Created: 28-Oct-2012 Post-History: 28-Oct-2012
+PEP: 4??
+Title: Time zone support improvements
+Version: $Revision$
+Last-Modified: $Date$
+Author: Lennart Regebro <regebro@gmail.com>
+BDFL-Delegate: Barry Warsaw
+Status: Draft
+Type: Standards Track 
+Content-Type: text/x-rst
+Created: 11-Dec-2012 
+Post-History: 11-Dec-2012
 
 
 Abstract

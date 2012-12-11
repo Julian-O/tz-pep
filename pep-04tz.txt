@@ -1,14 +1,7 @@
-PEP: 431?
-Title: Time zone support improvements
-Version: $Revision$
-Last-Modified: $Date$
-Author: Lennart Regebro <regebro@gmail.com>
-BDFL-Delegate: Barry Warsaw
-Status: Draft
-Type: Standards Track
-Content-Type: text/x-rst
-Created: 28-Oct-2012
-Post-History: 28-Oct-2012
+PEP: 431? Title: Time zone support improvements Version: $Revision$
+Last-Modified: $Date$ Author: Lennart Regebro <regebro@gmail.com>
+BDFL-Delegate: Barry Warsaw Status: Draft Type: Standards Track Content-Type:
+text/x-rst Created: 28-Oct-2012 Post-History: 28-Oct-2012
 
 
 Abstract
@@ -23,12 +16,12 @@ Proposal
 ========
 
 Concrete time zone support
--------------------------
+--------------------------
 
-The time zone support in Python has no implementation in the standard
-library, only a tzinfo baseclass, and since Python 3.2, one concrete time
-zone: UTC. To properly support time zones you need to include a database over
-all time zones, both current and historical, including daylight saving
+The time zone support in Python has no concrete implementation in the
+standard library, only a tzinfo baseclass, and since Python 3.2, one concrete
+time zone: UTC. To properly support time zones you need to include a database
+over all time zones, both current and historical, including daylight saving
 changes. But such information changes frequently, so even if we include the
 last information in a Python release, that information would be outdated just
 a few months later.
@@ -56,8 +49,12 @@ standard library on most platforms, and a simple package installation would
 provide time zone support on those platforms where the tz database isn't
 included, such as Windows.
 
+The time zone support will be implemented by a new module called `timezone``,
+based on Stuart Bishop's ``pytz`` module.
+
+
 Getting the local time zone
---------------------------
+---------------------------
 
 On Unix there is no standard way of finding the name of the time zone that is
 being used. All the information that is available is the time zone
@@ -70,6 +67,10 @@ since it's located in ``/etc/localtime``. Therefore it is possible to create
 a local time zone object with the correct time zone information even though
 you don't know the name of the time zone. A function in ``datetime`` should
 be provided to return the local time zone.
+
+The support for this will be made by integrating Lennart Regebro's
+``tzlocal`` module into the new ``timezone`` module.
+
 
 Ambiguous times
 ---------------
@@ -87,56 +88,66 @@ at 2012-11-28 01:00:00.
 The current time zone API can not disambiguate this and therefore it's
 unclear which time should be returned::
 
-    >>> datetime(2012, 11, 28, 2, 0, tzinfo=timezone('Europe/Stockholm'))
-    >>> datetime.astimezone(timezone('UTC'))
+    # This could be either 00:00 or 01:00 UTC:
+    >>> dt = datetime(2012, 11, 28, 2, 0, tzinfo=timezone('Europe/Stockholm'))
+    # But we can not specify which:
+    >>> dt.astimezone(timezone('UTC'))
+    datetime.datetime(2012, 11, 28, 1, 0, tzinfo=<UTC>)
 
-This PEP proposes to add ``is_dst`` parameters to the relevant methods of the
-API to make it possible to disambiguate when this is desired.
+``pytz`` solved this problem by adding ``is_dst`` parameters to several
+methods of the tzinfo objects to make it possible to disambiguate times when
+this is desired.
 
-
-API changes
-===========
-
-There is two new classes, one new function and three new exceptions in the
-`datetime` module. Several methods of the ``tzinfo`` and ``datetime`` classes
-has a new ``is_dst`` parameter.
-
-These API changes are for the most part based on ``pytz`` although with some
-renamings, and assuming that Stuart Bishop, the author of ``pytz`` agrees to
-it, the code will also be mostly based on ``pytz`` with the addition of code
-to get the coputers local time zone which will be based on Lennart Regebro's
-``tzlocal``.
+This PEP proposes to add these ``is_dst`` parameters to the relevant methods
+of the ``datetime`` API, and therefore add this functionality directly to
+``datetime``. This is likely the hardest part of this PEP as this involves updating
+the 
 
 
-New classes
------------
+Implementation API
+==================
 
-* ``StaticTzInfo``
+The new ``timezone``-module
+---------------------------
 
-   This class provides a concrete implementation of the ``zoneinfo`` base
-   that provides a fixed offset.
+The public API of the new ``timezone``-module contains one new class, one new
+function and one new exception.
+
+* New class: ``DstTzInfo``
+
+  This class provides a concrete implementation of the ``zoneinfo`` base
+  class that implements DST support.
+   
+
+* New function :``get_timezone(name=None, db=None)``
+
+  This function takes a name string that must be a string specifying a
+  valid zoneinfo timezone, ie "US/Eastern", "Europe/Warsaw" or "Etc/GMT+11".
+  If not given, the local timezone will be looked up. If an invalid zone name
+  are given, or the local timezone can not be retrieved, the function raises
+  `UnknownTimeZoneError`.
+
+  The function also takes an optional path to the location of the zoneinfo
+  database which should be used. If not specified, the function will check if
+  the `timezonedata` module is installed, and then use that location or otherwise
+  use the database in ``/usr/share/zoneinfo``.
   
+  If no database is found an ``UnknownTimeZoneError`` or subclass thereof will
+  be raised with a message explaining that no zoneinfo database can be found,
+  but that you can install one with the ``timezonedata`` package.
+    
+* New Exception: ``UnknownTimeZoneError``
 
-* ``DstTzInfo``
+  This exception is raised when giving a time zone specification that can't be found::
 
-   This class provides a concrete implementation of the ``zoneinfo`` base
-   class that implements DST support.
-   
-
-New functions
--------------
-
-* ``get_timezone()``
-
-  This function takes a string that specifies a time zone name according to
-  the zoneinfo naming, ie "US/Eastern", "Europe/Warsaw" or "Etc/GMT+11".
-   
-  If no string is passed in, the function will look up the timezone of the
-  local computer and return that.
+     >>> datetime.Timezone('Europe/New_York')
+     Traceback (most recent call last):
+     ...
+     UnknownTimeZoneError: There is no time zone called 'Europe/New_York'
 
 
-New ``is_dst`` parameter
-------------------------
+Changes in the ``datetime``-module
+--------------------------------------
 
 A new ``is_dst`` parameter is added to several of the `tzinfo` methods to
 handle time ambiguity during DST changeovers.
@@ -161,21 +172,9 @@ the change from DST.
 was during a DST change over. It will also raise a ``NonExistentTimeError``
 if a time is specified during the "missing time" in a change to DST.
 
+There are also two new exceptions:
 
-New exceptions
---------------
-
-* `UnknownTimeZoneError``
-
-  This exception is raised when giving a time zone specification that can't be found::
-
-    >>> datetime.Timezone('Europe/New_York')
-    Traceback (most recent call last):
-    ...
-    UnknownTimeZoneError: There is no time zone called 'Europe/New_York'
-
-
-* `AmbiguousTimeError``
+* ``AmbiguousTimeError``
 
   This exception is raised when giving a datetime specification that are ambigious
   while setting ``is_dst`` to None::
@@ -187,7 +186,7 @@ New exceptions
     AmbiguousTimeError: 2012-10-28 02:00:00 is ambiguous in time zone Europe/Stockholm
 
 
-* `NonExistentTimeError``
+* ``NonExistentTimeError``
 
   This exception is raised when giving a datetime specification that are ambigious
   while setting ``is_dst`` to None::
@@ -199,32 +198,41 @@ New exceptions
     NonExistentTimeError: 2012-03-25 02:00:00 does not exist in time zone Europe/Stockholm
 
 
+The ``timezonedata``-package
+-----------------------------
+
+The zoneinfo database will be packaged for easy installation with
+``easy_install``/``pip``/``buildout``. This package will not install any
+Python code, and will not contain any Python code except that which is needed
+for installation.
+
+
 Differences from the ``pytz`` API
 =================================
 
-* ``pytz`` has a localize() function to work around that as_timezone() doesn't have is_dst. 
-  We implement is_dst instead, so it should not be needed.
+* ``pytz`` has the functions ``localize()`` and ``normalize()`` to work
+  around that ``tzinfo`` doesn't have is_dst. When ``is_dst`` is 
+  implemented directly in ``datetime.tzinfo`` they are no longer needed.
   
-* ``pytz`` method ``timezone()`` is instead called ``get_timezone()`` for clarity.
+* The ``pytz`` method ``timezone()`` is instead called ``get_timezone()`` for clarity.
 
 * ``get_timezone()``  will return the local time zone if called without parameters.
+
+* The class ``pytz.StaticTzInfo`` is there to provide the ``is_dst`` support for static
+  timezones. When ``is_dst`` support is included in ``datetime.tzinfo`` it is no longer needed.
  
 
 Discussion
 ==========
  
-* Should is_dst=True/False raise an error if it is incorrect? If you give is_dst=True foor Europe/Stockholm during xmas?
+Should the windows installer include the data package?
+------------------------------------------------------
 
-* Should Timezone repr be <Timezone Europe/Stockholm CEST+02:00:00> or Timezone('Europe/Stockholm')?
-
-* Should both StaticTzInfo and DstTzInfo be included? Is StaticTzInfo really
-  useful? Since whole-hour offsets are also available in zoneinfo this class is
-  only necessary if you need a fixed offset that is not a whole hour . This is
-  an unusual case, but by including it we can replace pytz completely.
-
-* Should the windows installer include the data package?
-
-* What should the data package be called?
+It has been suggested that the Windows installer should include the data
+package. This would mean that an explicit installation no longer would be
+needed on Windows. On the other hand, that would mean that many using Windows
+would not be aware that the database quickly becomes outdated and would not
+keep it updated.
 
 
 Resources
@@ -233,6 +241,8 @@ Resources
 * http://pytz.sourceforge.net/
 
 * http://pypi.python.org/pypi/tzlocal
+
+* http://pypi.python.org/pypi/python-dateutil
 
 Copyright
 =========

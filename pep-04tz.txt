@@ -50,7 +50,7 @@ copy of the zoneinfo database, and a distribution containing the latest
 zoneinfo database will also be available at the Python Package Index, so it
 can be easily installed with the Python packaging tools such as
 ``easy_install`` or ``pip``. This could also be done on Unices that are no
-longer recieving updates and therefore has an outdated database.
+longer receiving updates and therefore have an outdated database.
 
 With such a mechanism Python would have full time zone support in the
 standard library on any platform, and a simple package installation would
@@ -59,7 +59,7 @@ database isn't included, such as Windows, or on platforms where OS updates
 are no longer provided.
 
 The time zone support will be implemented by making the ``datetime`` module
-into a package, and creating a new submodule called `timezone``, based on
+into a package, and creating a new submodule called ``timezone``, based on
 Stuart Bishop's ``pytz`` module.
 
 
@@ -69,7 +69,7 @@ Getting the local time zone
 On Unix there is no standard way of finding the name of the time zone that is
 being used. All the information that is available is the time zone
 abbreviations, such as ``EST`` and ``PDT``, but many of those abbreviations
-are ambigious and therefore you can't rely on them to figure out which time
+are ambiguous and therefore you can't rely on them to figure out which time
 zone you are located in.
 
 There is however a standard for finding the compiled time zone information
@@ -92,12 +92,12 @@ for doing so will be provided in the ``Tools/`` directory.
 Ambiguous times
 ---------------
 
-When changing over from daylight savings time the clock is turned back one
+When changing over from daylight savings time (DST) the clock is turned back one
 hour. This means that the times during that hour happens twice, once without
-DST and then once with DST. Similarily, when changing to daylight savings
+DST and then once with DST. Similarly, when changing to daylight savings
 time, one hour goes missing.
 
-The current time zone API can not differentiating between the two ambiguous
+The current time zone API can not differentiate between the two ambiguous
 times during a change from DST. For example, in Stockholm the time of
 2012-11-28 02:00:00 happens twice, both at UTC 2012-11-28 00:00:00 and also
 at 2012-11-28 01:00:00.
@@ -138,6 +138,10 @@ security-fix-only-mode.
 Scripts to update the database will be provided in ``Tools/``, and the
 release instructions will be updated to include this update.
 
+Binary installers for systems that have a system-provided zoneinfo database
+may skip the database included with Python since it would never be used for
+these platforms.
+
 
 The new ``datetime.timezone``-module
 ------------------------------------
@@ -154,9 +158,9 @@ function and one new exception.
 * New function :``timezone(name=None, db_path=None)``
 
   This function takes a name string that must be a string specifying a
-  valid zoneinfo timezone, ie "US/Eastern", "Europe/Warsaw" or "Etc/GMT+11".
+  valid zoneinfo timezone, i.e. "US/Eastern", "Europe/Warsaw" or "Etc/GMT+11".
   If not given, the local timezone will be looked up. If an invalid zone name
-  are given, or the local timezone can not be retrieved, the function raises
+  is given, or the local timezone can not be retrieved, the function raises
   `UnknownTimeZoneError`.
 
   The function also takes an optional path to the location of the zoneinfo
@@ -168,7 +172,7 @@ function and one new exception.
   2. Check if the `tzdata-update` module is installed, and then use that
   database.
   
-  3. Check the Python-provided database in ``Lib/tzdata``.
+  3. Use the Python-provided database in ``Lib/tzdata``.
   
   If no database is found an ``UnknownTimeZoneError`` or subclass thereof will
   be raised with a message explaining that no zoneinfo database can be found,
@@ -200,11 +204,11 @@ handle time ambiguity during DST changeovers.
 The ``is_dst`` parameter can be ``False`` (default), ``True``, or ``None``.
 
 ``False`` will specify that the given datetime should be interpreted as not
-happening during daylight savings time, ie that the time specified is after
+happening during daylight savings time, i.e. that the time specified is after
 the change from DST.
 
 ``True`` will specify that the given datetime should be interpreted as happening
-during daylight savings time, ie that the time specified is before the change
+during daylight savings time, i.e. that the time specified is before the change
 from DST.
 
 ``None`` will raise an ``AmbiguousTimeError`` exception if the time specified
@@ -222,7 +226,7 @@ There are also three new exceptions:
 
 * ``AmbiguousTimeError``
 
-  This exception is raised when giving a datetime specification that are ambigious
+  This exception is raised when giving a datetime specification that is ambiguous
   while setting ``is_dst`` to None::
 
     >>> datetime(2012, 11, 28, 2, 0, tzinfo=timezone('Europe/Stockholm'), is_dst=None)
@@ -234,7 +238,7 @@ There are also three new exceptions:
 
 * ``NonExistentTimeError``
 
-  This exception is raised when giving a datetime specification that are ambigious
+  This exception is raised when giving a datetime specification that is ambiguous
   while setting ``is_dst`` to None::
 
     >>> datetime(2012, 3, 25, 2, 0, tzinfo=timezone('Europe/Stockholm'), is_dst=None)
@@ -260,26 +264,13 @@ Differences from the ``pytz`` API
   around that ``tzinfo`` doesn't have is_dst. When ``is_dst`` is 
   implemented directly in ``datetime.tzinfo`` they are no longer needed.
   
-* ``timezone()``  will return the local time zone if called without parameters.
+* ``timezone()`` will return the local time zone if called without arguments.
 
 * The class ``pytz.StaticTzInfo`` is there to provide the ``is_dst`` support for static
   timezones. When ``is_dst`` support is included in ``datetime.tzinfo`` it is no longer needed.
   
 * ``InvalidTimeError`` subclasses from ``ValueError``.
  
-
-Discussion
-==========
- 
-Should the windows installer include the data package?
-------------------------------------------------------
-
-It has been suggested that the Windows installer should include the data
-package. This would mean that an explicit installation no longer would be
-needed on Windows. On the other hand, that would mean that many using Windows
-would not be aware that the database quickly becomes outdated and would not
-keep it updated.
-
 
 Resources
 =========

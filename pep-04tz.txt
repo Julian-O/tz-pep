@@ -3,11 +3,11 @@ Title: Time zone support improvements
 Version: $Revision$
 Last-Modified: $Date$
 Author: Lennart Regebro <regebro@gmail.com>
-BDFL-Delegate: Barry Warsaw
+BDFL-Delegate: Barry Warsaw <barry@python.org>
 Status: Draft
-Type: Standards Track 
+Type: Standards Track
 Content-Type: text/x-rst
-Created: 11-Dec-2012 
+Created: 11-Dec-2012
 Post-History: 11-Dec-2012, 28-Dec-2012
 
 
@@ -28,7 +28,7 @@ Concrete time zone support
 The time zone support in Python has no concrete implementation in the
 standard library outside of a tzinfo baseclass that supports fixed offsets.
 To properly support time zones you need to include a database over all time
-zones, both current and historical, including daylight saving changes. 
+zones, both current and historical, including daylight saving changes.
 But such information changes frequently, so even if we include the last
 information in a Python release, that information would be outdated just a
 few months later.
@@ -92,10 +92,10 @@ for doing so will be provided in the ``Tools/`` directory.
 Ambiguous times
 ---------------
 
-When changing over from daylight savings time (DST) the clock is turned back one
-hour. This means that the times during that hour happens twice, once without
-DST and then once with DST. Similarly, when changing to daylight savings
-time, one hour goes missing.
+When changing over from daylight savings time (DST) the clock is turned back
+one hour. This means that the times during that hour happens twice, once
+without DST and then once with DST. Similarly, when changing to daylight
+savings time, one hour goes missing.
 
 The current time zone API can not differentiate between the two ambiguous
 times during a change from DST. For example, in Stockholm the time of
@@ -161,7 +161,7 @@ New class ``DstTzInfo``
 
 This class provides a concrete implementation of the ``zoneinfo`` base
 class that implements DST support.
-   
+
 
 New function ``zoneinfo(name=None, db_path=None)``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -186,7 +186,7 @@ databases in the following order:
 If no database is found an ``UnknownTimeZoneError`` or subclass thereof will
 be raised with a message explaining that no zoneinfo database can be found,
 but that you can install one with the ``tzdata-update`` package.
-         
+
 
 New parameter ``is_dst``
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -201,7 +201,7 @@ ambiguity during DST changeovers.
 * ``tzinfo.tzname(dt, is_dst=False)``
 
 * ``datetime.astimezone(tz, is_dst=False)``
-    
+
 The ``is_dst`` parameter can be ``False`` (default), ``True``, or ``None``.
 
 ``False`` will specify that the given datetime should be interpreted as not
@@ -242,7 +242,7 @@ New exceptions
   while setting ``is_dst`` to None::
 
     >>> datetime(2012, 11, 28, 2, 0, tzinfo=zoneinfo('Europe/Stockholm'), is_dst=None)
-    >>> 
+    >>>
     Traceback (most recent call last):
     ...
     AmbiguousTimeError: 2012-10-28 02:00:00 is ambiguous in time zone Europe/Stockholm
@@ -254,7 +254,7 @@ New exceptions
   while setting ``is_dst`` to None::
 
     >>> datetime(2012, 3, 25, 2, 0, tzinfo=zoneinfo('Europe/Stockholm'), is_dst=None)
-    >>> 
+    >>>
     Traceback (most recent call last):
     ...
     NonExistentTimeError: 2012-03-25 02:00:00 does not exist in time zone Europe/Stockholm
@@ -267,7 +267,7 @@ New collections
   be used, listed alphabethically.
 
 * ``all_timezones_set`` is a set of the time zones in ``all_timezones``.
-  
+
 * ``common_timezones`` is a list of useful, current time zones, listed
   alphabethically.
 
@@ -282,7 +282,7 @@ The zoneinfo database will be packaged for easy installation with
 Python code, and will not contain any Python code except that which is needed
 for installation.
 
-It will be kept updated with the same tools as the internal database, but 
+It will be kept updated with the same tools as the internal database, but
 released whenever the ``zoneinfo``-database is updated, and use the same
 version schema.
 
@@ -291,9 +291,9 @@ Differences from the ``pytz`` API
 =================================
 
 * ``pytz`` has the functions ``localize()`` and ``normalize()`` to work
-  around that ``tzinfo`` doesn't have is_dst. When ``is_dst`` is 
+  around that ``tzinfo`` doesn't have is_dst. When ``is_dst`` is
   implemented directly in ``datetime.tzinfo`` they are no longer needed.
-  
+
 * The ``timezone()`` function is called ``zoneinfo()`` to avoid clashing with
   the ``timezone`` class introduced in Python 3.2.
 
@@ -301,9 +301,9 @@ Differences from the ``pytz`` API
 
 * The class ``pytz.StaticTzInfo`` is there to provide the ``is_dst`` support for static
   time zones. When ``is_dst`` support is included in ``datetime.tzinfo`` it is no longer needed.
-  
+
 * ``InvalidTimeError`` subclasses from ``ValueError``.
- 
+
 
 Resources
 =========

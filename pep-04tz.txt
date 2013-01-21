@@ -264,12 +264,12 @@ New collections
 ^^^^^^^^^^^^^^^
 
 * ``all_timezones`` is the exhaustive list of the time zone names that can
-  be used, listed alphabethically.
+  be used, listed alphabetically.
 
 * ``all_timezones_set`` is a set of the time zones in ``all_timezones``.
 
 * ``common_timezones`` is a list of useful, current time zones, listed
-  alphabethically.
+  alphabetically.
 
 * ``common_timezones_set`` is a set of the time zones in ``common_timezones``.
 
